@@ -211,7 +211,7 @@
 
         /* --- SCENE 5: DESKTOP & FILE SYSTEM STYLES --- */
         #scene-desktop {
-            /* Applied the same darkening gradient as the letter screen */
+            /* 30% image opacity achieved via 70% black linear-gradient overlay */
             background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('assets/desktop_background.jpeg') center/cover no-repeat;
             background-color: #000; 
             align-items: flex-start; 
@@ -271,7 +271,7 @@
         }
 
         .xp-dialog {
-            width: 400px;
+            width: 480px;
             background: var(--xp-window-bg);
             border: 3px solid #0055ea;
             border-top-left-radius: 8px; border-top-right-radius: 8px;
@@ -286,8 +286,9 @@
             background: white;
             border: 2px solid #7f9db9;
             margin: 2px;
-            text-align: center;
-            font-size: 1.1rem;
+            text-align: left;
+            line-height: 1.4;
+            font-size: 1.05rem;
         }
 
         .xp-dialog-buttons {
@@ -344,7 +345,7 @@
         .collage-element { 
             position: absolute; opacity: 0; color: white; 
             font-family: 'Minecraft', sans-serif; font-size: clamp(0.7rem, 1.1vw, 1.1rem); line-height: 1.4; 
-            font-size: clamp(0.7rem, 1vw, 1.1rem); /* Changed this back down */
+            font-size: clamp(0.7rem, 1vw, 1.1rem);
             word-break: break-word; overflow-wrap: break-word;
             transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.2s ease-out; 
         }
@@ -490,11 +491,11 @@
         <div id="xp-dialog-overlay" class="hidden">
             <div class="xp-dialog">
                 <div class="xp-titlebar">
-                    <span>System Prompt</span>
+                    <span id="dialog-title">System Prompt</span>
                     <div class="xp-close-btn" id="dialog-close-x">X</div>
                 </div>
                 <div class="xp-dialog-content">
-                    <p>Are you finished browsing?</p>
+                    <p id="dialog-text">Are you finished browsing?</p>
                     <div class="xp-dialog-buttons">
                         <button class="xp-dialog-btn" id="dialog-btn-yes">Yes</button>
                         <button class="xp-dialog-btn" id="dialog-btn-no">No</button>
@@ -734,7 +735,7 @@
                 ],
                 "games": [
                     { name: "metronome.exe", iconBase: "assets/exe_icon", type: "executable", useBoil: true, frames: 3, specialAction: "openMetronome" },
-                    { name: "old.exe", iconBase: "assets/exe_icon", type: "executable", useBoil: true, frames: 3, specialAction: "openLink", targetUrl: "https://clarence9786.github.io/old/" }
+                    { name: "old.exe", iconBase: "assets/exe_icon", type: "executable", useBoil: true, frames: 3, specialAction: "openOldExe", targetUrl: "https://clarence9786.github.io/old/" }
                 ]
             }
         };
@@ -1077,6 +1078,9 @@
                         }
                         else if (file.specialAction === "openMetronome") {
                             this.gameController.launchMetronome();
+                        }
+                        else if (file.specialAction === "openOldExe") {
+                            this.gameController.launchOldExe(file.targetUrl);
                         }
                         else if (file.specialAction === "openLink") {
                             window.open(file.targetUrl, '_blank');
@@ -1483,23 +1487,11 @@
                 // Finish Dialog Handlers
                 document.getElementById('start-button').addEventListener('click', () => {
                     this.audio.playSound('audio/menu_select.wav');
-                    document.getElementById('xp-dialog-overlay').classList.remove('hidden');
-                });
-
-                document.getElementById('dialog-btn-no').addEventListener('click', () => {
-                    this.audio.playSound('audio/menu_select.wav');
-                    document.getElementById('xp-dialog-overlay').classList.add('hidden');
-                });
-
-                document.getElementById('dialog-close-x').addEventListener('click', () => {
-                    this.audio.playSound('audio/menu_select.wav');
-                    document.getElementById('xp-dialog-overlay').classList.add('hidden');
-                });
-
-                document.getElementById('dialog-btn-yes').addEventListener('click', () => {
-                    this.audio.playSound('audio/menu_select.wav');
-                    document.getElementById('xp-dialog-overlay').classList.add('hidden');
-                    this.launchOutroSequence();
+                    this.showDialog(
+                        "System Prompt",
+                        "Are you finished browsing?",
+                        () => this.launchOutroSequence()
+                    );
                 });
 
                 // Cheat Code Listener
@@ -1555,6 +1547,8 @@
                             this.launchLetterSequence();
                         } else if (file.specialAction === "openMetronome") {
                             this.launchMetronome();
+                        } else if (file.specialAction === "openOldExe") {
+                            this.launchOldExe(file.targetUrl);
                         } else if (file.specialAction === "openLink") {
                             window.open(file.targetUrl, '_blank');
                         } else if (file.type === 'folder' && file.targetDirectory) {
@@ -1610,6 +1604,42 @@
                 });
             }
 
+            // --- APP LAUNCHERS & DIALOGS ---
+
+            showDialog(title, text, onYes) {
+                const overlay = document.getElementById('xp-dialog-overlay');
+                document.getElementById('dialog-title').innerText = title;
+                document.getElementById('dialog-text').innerText = text;
+                
+                overlay.classList.remove('hidden');
+
+                document.getElementById('dialog-btn-yes').onclick = () => {
+                    this.audio.playSound('audio/menu_select.wav');
+                    overlay.classList.add('hidden');
+                    if (onYes) onYes();
+                };
+
+                document.getElementById('dialog-btn-no').onclick = () => {
+                    this.audio.playSound('audio/menu_select.wav');
+                    overlay.classList.add('hidden');
+                };
+
+                document.getElementById('dialog-close-x').onclick = () => {
+                    this.audio.playSound('audio/menu_select.wav');
+                    overlay.classList.add('hidden');
+                };
+            }
+
+            launchOldExe(url) {
+                const warningText = "This is something I started coding 2.5 weeks before you left for placement. It was a pretty large-scale project and after spending so much time just putting this short puzzle together, I realised generating art and placing hitboxes was more intensive than I thought. 1 week before you left (and I started getting super busy), I scrapped the project. Once you hit the, \"Click! You found it!\" message, feel free to close it. That's the end. Would you like to proceed with this ancient, potentially dangerous program?";
+                
+                this.showDialog(
+                    "Warning: old.exe",
+                    warningText,
+                    () => window.open(url, '_blank')
+                );
+            }
+
             launchLetterSequence() {
                 document.body.classList.add('blackout');
                 
@@ -1628,8 +1658,7 @@
                     void this.sceneLetter.offsetWidth; 
                     this.sceneLetter.classList.add('active');
 
-                    // Apply the 30% opacity trick dynamically using walking_together_cropped.jpg
-                    this.sceneLetter.style.backgroundImage = "linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('assets/walking_together_cropped.jpeg')";
+                    this.sceneLetter.style.backgroundImage = "linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('assets/walking_together_cropped.jpg')";
                     this.sceneLetter.style.backgroundSize = "cover";
                     this.sceneLetter.style.backgroundPosition = "center";
 
@@ -1704,7 +1733,6 @@
                     void this.sceneOutro.offsetWidth;
                     this.sceneOutro.classList.add('active');
 
-                    // Attempt to close the window after 2 seconds
                     setTimeout(() => {
                         try {
                             window.close();
